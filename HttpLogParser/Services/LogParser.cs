@@ -17,44 +17,96 @@ namespace HttpLogParser.Services
             @"^(?<ip>\S+) \S+ \S+ \[(?<datetime>[^\]]+)\] ""(?<method>\S+) (?<url>\S+).*"" (?<status>\d{3}) (?<size>\d+)( ""(?<referrer>[^""]*)"" ""(?<useragent>[^""]*)"")?",
             RegexOptions.Compiled);
 
+        //public static List<LogItem> ParseLogFile(string logFilePath)
+        //{
+        //    var logEntries = new List<LogItem>();
+
+        //    // loop through each line in the logfile and populate a list of LogItem
+        //    // Note: I could have done the calculations within this loop to satisfy the
+        //    //       requirements of this exercise, but I chose to first load a list and then do the analysis later
+        //    //       This is to accommodate future change in requirements.
+        //    // Note 2: I could have also just grabbed the IP Address and URL from the log file, but grabbing all fields in case requirements change
+
+        //    // Note on the above. I don't believe it always makes sense to future proof your code because it can create unecessary work that
+        //    //  may never be used. In this case, it doesn't require a lot of additional work so I made the decision to do it here.
+        //    foreach (var line in File.ReadLines(logFilePath))
+        //    {
+        //        // Note: the regx pattern will ignore any extra data on a row, eg one of the rows has 'junk extra' appended
+        //        //       the row should still be included in the results, but the 'junk extra' will be ignored.
+        //        var match = LogPattern.Match(line);
+        //        if (match.Success)
+        //        {
+        //            logEntries.Add(new LogItem
+        //            {
+        //                IPAddress = match.Groups["ip"].Value,
+        //                URL = GetDomainOnlyFromUrl(match.Groups["url"].Value),
+        //                Method = match.Groups["method"].Value,
+        //                StatusCode = int.Parse(match.Groups["status"].Value),
+        //                Size = int.Parse(match.Groups["size"].Value),
+        //                UserAgent = match.Groups["useragent"].Value,
+        //                DateTime = ParseDateTime(match.Groups["datetime"].Value)
+        //            });
+        //        }
+        //        else
+        //        {
+        //            // log any unmatched rows
+        //            Console.WriteLine($"Warning: Unable to parse log line: {line}");
+        //        }
+        //    }
+
+        //    return logEntries;
+        //}
+
         public static List<LogItem> ParseLogFile(string logFilePath)
         {
             var logEntries = new List<LogItem>();
 
-            // loop through each line in the logfile and populate a list of LogItem
-            // Note: I could have done the calculations within this loop to satisfy the
-            //       requirements of this exercise, but I chose to first load a list and then do the analysis later
-            //       This is to accommodate future change in requirements.
-            // Note 2: I could have also just grabbed the IP Address and URL from the log file, but grabbing all fields in case requirements change
-
-            // Note on the above. I don't believe it always makes sense to future proof your code because it can create unecessary work that
-            //  may never be used. In this case, it doesn't require a lot of additional work so I made the decision to do it here.
             foreach (var line in File.ReadLines(logFilePath))
             {
-                // Note: the regx pattern will ignore any extra data on a row, eg one of the rows has 'junk extra' appended
-                //       the row should still be included in the results, but the 'junk extra' will be ignored.
-                var match = LogPattern.Match(line);
-                if (match.Success)
+                // loop through each line in the logfile and populate a list of LogItem
+                // Note: I could have done the calculations within this loop to satisfy the
+                //       requirements of this exercise, but I chose to first load a list and then do the analysis later
+                //       This is to accommodate future change in requirements.
+                 // Note on the above. I don't believe it always makes sense to future proof your code because it can create unecessary work that
+                //  may never be used. In this case, it doesn't require a lot of additional work so I made the decision to do it here.
+
+                var logItem = ParseLogLine(line);
+                if (logItem != null)
                 {
-                    logEntries.Add(new LogItem
-                    {
-                        IPAddress = match.Groups["ip"].Value,
-                        URL = GetDomainOnlyFromUrl(match.Groups["url"].Value),
-                        Method = match.Groups["method"].Value,
-                        StatusCode = int.Parse(match.Groups["status"].Value),
-                        Size = int.Parse(match.Groups["size"].Value),
-                        UserAgent = match.Groups["useragent"].Value,
-                        DateTime = ParseDateTime(match.Groups["datetime"].Value)
-                    });
+                    logEntries.Add(logItem);
                 }
                 else
                 {
                     // log any unmatched rows
-                    Console.WriteLine($"Warning: Unable to parse log line: {line}");
+                    Console.WriteLine($"Error parsing row: {line}");
                 }
             }
 
             return logEntries;
+        }
+
+        public static LogItem ParseLogLine(string line)
+        {
+            // Note: I could have also just grabbed the IP Address and URL from the log file, but grabbing all fields in case requirements change
+            var match = LogPattern.Match(line);
+            if (match.Success)
+            {
+                return new LogItem
+                {
+                    IPAddress = match.Groups["ip"].Value,
+                    URL = GetDomainOnlyFromUrl(match.Groups["url"].Value),
+                    Method = match.Groups["method"].Value,
+                    StatusCode = int.Parse(match.Groups["status"].Value),
+                    Size = int.Parse(match.Groups["size"].Value),
+                    UserAgent = match.Groups["useragent"].Value,
+                    DateTime = ParseDateTime(match.Groups["datetime"].Value)
+                };
+            }
+            else
+            {
+                // Log or handle unmatched lines as needed
+                return null;
+            }
         }
 
         private static string GetDomainOnlyFromUrl(string url)
@@ -65,7 +117,11 @@ namespace HttpLogParser.Services
 
         private static DateTime ParseDateTime(string dateTimeStr)
         {
-            return DateTime.ParseExact(dateTimeStr, "dd/MMM/yyyy:HH:mm:ss zzz", CultureInfo.InvariantCulture);
+            return DateTime.ParseExact(
+                dateTimeStr,
+                "dd/MMM/yyyy:HH:mm:ss zzz",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
         }
     }
 }
