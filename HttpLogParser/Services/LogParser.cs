@@ -65,7 +65,7 @@ namespace HttpLogParser.Services
             }
             else
             {
-                // Log or handle unmatched lines as needed
+                // return null if unmatched
                 return null;
             }
         }
@@ -78,6 +78,7 @@ namespace HttpLogParser.Services
 
         private static DateTime ParseDateTime(string dateTimeStr)
         {
+            // keep the date time as UTC 
             return DateTime.ParseExact(
                 dateTimeStr,
                 "dd/MMM/yyyy:HH:mm:ss zzz",
